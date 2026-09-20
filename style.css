@@ -1,0 +1,164 @@
+/* ==========================================================================
+   TEMA PASTEL & MINIMALIS (POS KASIR)
+   ========================================================================== */
+
+/* Variabel Warna Utama */
+:root {
+  --bg-main: #f8fafc;           /* Soft Slate / Off-White background */
+  --bg-card: #ffffff;           /* Clean white card */
+  
+  /* Palette Pastel */
+  --pastel-indigo: #818cf8;     /* Soft Lavender / Indigo */
+  --pastel-indigo-light: #e0e7ff;
+  --pastel-emerald: #34d399;    /* Soft Mint Green */
+  --pastel-emerald-light: #d1fae5;
+  --pastel-amber: #fbbf24;      /* Soft Warm Yellow */
+  --pastel-amber-light: #fef3c7;
+  --pastel-rose: #f87171;       /* Soft Coral Red */
+  --pastel-rose-light: #fee2e2;
+  
+  /* Teks & Netral */
+  --text-main: #334155;         /* Deep Slate Gray */
+  --text-muted: #94a3b8;        /* Soft Gray Text */
+  --border-light: #f1f5f9;      /* Ultra subtle border */
+  
+  /* Shadow Soft Minimalis */
+  --shadow-soft: 0 4px 20px -2px rgba(148, 163, 184, 0.12);
+  --shadow-hover: 0 10px 25px -5px rgba(129, 140, 248, 0.2);
+  --radius-custom: 1.25rem;     /* 20px Rounded Corners */
+}
+
+/* Reset & Global */
+body {
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 1. Layar Login Pastel */
+#screen-login {
+  background: linear-gradient(135deg, #e0e7ff 0%, #f1f5f9 50%, #d1fae5 100%);
+}
+
+#screen-login > div {
+  border-radius: var(--radius-custom);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 20px 40px -15px rgba(148, 163, 184, 0.2);
+  backdrop-filter: blur(8px);
+}
+
+/* 2. Kartu Produk (Product Cards) */
+#product-grid > div {
+  background-color: var(--bg-card);
+  border-radius: var(--radius-custom);
+  border: 1px solid var(--border-light);
+  box-shadow: var(--shadow-soft);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#product-grid > div:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-hover);
+  border-color: var(--pastel-indigo-light);
+}
+
+#product-grid > div h3 {
+  color: var(--text-main);
+}
+
+#product-grid > div p.font-bold {
+  color: #6366f1; /* Pastel Accent Text */
+}
+
+/* 3. Keranjang Belanja (Cart Section) */
+.w-full.md\:w-96 {
+  border-top-left-radius: var(--radius-custom);
+  border-bottom-left-radius: var(--radius-custom);
+  box-shadow: -5px 0 25px -5px rgba(148, 163, 184, 0.08);
+}
+
+#cart-list > div {
+  background-color: #f8fafc;
+  border-radius: 0.875rem;
+  border: 1px solid #f1f5f9;
+  transition: background-color 0.2s ease;
+}
+
+#cart-list > div:hover {
+  background-color: #f1f5f9;
+}
+
+/* 4. Tombol Utama (Buttons) */
+#btn-pay-qris {
+  background-color: var(--pastel-emerald);
+  border-radius: 0.875rem;
+  box-shadow: 0 8px 20px -4px rgba(52, 211, 153, 0.4);
+  transition: all 0.2s ease;
+}
+
+#btn-pay-qris:hover:not(:disabled) {
+  background-color: #10b981;
+  transform: translateY(-1px);
+}
+
+#btn-pay-qris:disabled {
+  background-color: #e2e8f0;
+  box-shadow: none;
+  color: var(--text-muted);
+}
+
+#btn-login {
+  background-color: var(--pastel-indigo);
+  border-radius: 0.875rem;
+  box-shadow: 0 8px 20px -4px rgba(129, 140, 248, 0.4);
+}
+
+#btn-login:hover {
+  background-color: #6366f1;
+}
+
+/* 5. Modal QRIS Pastel */
+#modal-qris > div {
+  border-radius: 1.75rem;
+  box-shadow: 0 25px 50px -12px rgba(100, 116, 139, 0.25);
+  border: 1px solid #f1f5f9;
+}
+
+#qris-container {
+  background-color: #f8fafc;
+  border: 2px dashed #e2e8f0;
+  border-radius: 1.25rem;
+}
+
+#payment-status-badge {
+  background-color: var(--pastel-amber-light);
+  color: #b45309;
+  border-color: #fde68a;
+  border-radius: 0.875rem;
+}
+
+/* Badges Status Sukses */
+#success-state .w-16 {
+  background-color: var(--pastel-emerald-light);
+  color: #059669;
+}
+
+/* 6. Custom Scrollbar Halus */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #e2e8f0;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #cbd5e1;
+}
