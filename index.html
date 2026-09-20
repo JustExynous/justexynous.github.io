@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>POS Kasir QRIS</title>
+  
+  <!-- Manifest & PWA Meta -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#4f46e5" />
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Supabase JS Client CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-slate-100 font-sans text-slate-800 antialiased min-h-screen">
+
+  <!-- ================= LAYAR LOGIN PIN ================= -->
+  <div id="screen-login" class="flex flex-col items-center justify-center min-h-screen p-4">
+    <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-sm text-center">
+      <div class="w-16 h-16 bg-indigo-600 text-white rounded-2xl flex items-center justify-center text-2xl font-bold mx-auto mb-4">
+        POS
+      </div>
+      <h2 class="text-2xl font-bold mb-1 text-slate-900">Masuk Kasir</h2>
+      <p class="text-sm text-slate-500 mb-6">Pilih outlet dan masukkan PIN Kasir</p>
+
+      <div class="text-left mb-4">
+        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Outlet</label>
+        <select id="select-outlet" class="w-full border border-slate-300 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          <option value="">-- Pilih Outlet --</option>
+        </select>
+      </div>
+
+      <div class="text-left mb-6">
+        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Kasir</label>
+        <select id="select-kasir" class="w-full border border-slate-300 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          <option value="">-- Pilih Nama Kasir --</option>
+        </select>
+      </div>
+
+      <button id="btn-login" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3.5 rounded-xl transition duration-200 shadow-lg shadow-indigo-200">
+        Masuk Aplikasi
+      </button>
+    </div>
+  </div>
+
+
+  <!-- ================= LAYAR UTAMA KASIR ================= -->
+  <div id="screen-pos" class="hidden min-h-screen flex flex-col md:flex-row">
+    
+    <!-- Kolom Kiri: Katalog Produk -->
+    <div class="flex-1 p-4 md:p-6 overflow-y-auto">
+      <!-- Topbar Header -->
+      <div class="flex justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+        <div>
+          <h1 id="header-outlet-name" class="font-bold text-lg text-slate-900">Outlet -</h1>
+          <p id="header-kasir-name" class="text-xs text-slate-500">Kasir: -</p>
+        </div>
+        <button id="btn-logout" class="text-xs bg-slate-100 hover:bg-red-50 text-red-600 font-semibold px-3 py-2 rounded-lg transition">
+          Keluar
+        </button>
+      </div>
+
+      <!-- Grid Produk -->
+      <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-500 mb-3">Daftar Produk</h2>
+      <div id="product-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+        <!-- Card produk di-render via JS -->
+      </div>
+    </div>
+
+    <!-- Kolom Kanan: Keranjang Belanja & Pembayaran -->
+    <div class="w-full md:w-96 bg-white border-t md:border-t-0 md:border-l border-slate-200 flex flex-col h-auto md:h-screen sticky top-0">
+      <div class="p-4 border-b border-slate-200 bg-slate-50">
+        <h2 class="font-bold text-slate-900">Keranjang Belanja</h2>
+      </div>
+
+      <!-- List Cart Items -->
+      <div id="cart-list" class="flex-1 overflow-y-auto p-4 space-y-3 min-h-[200px]">
+        <div class="text-center text-slate-400 py-10 text-sm">Keranjang masih kosong</div>
+      </div>
+
+      <!-- Footer Ringkasan -->
+      <div class="p-4 border-t border-slate-200 bg-slate-50">
+        <div class="flex justify-between items-center mb-4">
+          <span class="text-slate-500 font-medium">Total Harga</span>
+          <span id="cart-total" class="text-xl font-bold text-slate-900">Rp 0</span>
+        </div>
+
+        <button id="btn-pay-qris" disabled class="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-bold py-3.5 rounded-xl transition shadow-lg shadow-emerald-100 flex items-center justify-center gap-2">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
+          Bayar via QRIS
+        </button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ================= MODAL PEMBAYARAN QRIS ================= -->
+  <div id="modal-qris" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl p-6 max-w-sm w-full text-center shadow-2xl relative animate-in fade-in zoom-in duration-200">
+      
+      <!-- Close Button -->
+      <button id="btn-close-qris" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-xl font-bold p-2">✕</button>
+
+      <h3 class="text-lg font-bold text-slate-900 mb-1">Scan QRIS Untuk Membayar</h3>
+      <p id="qris-total-text" class="text-2xl font-black text-indigo-600 mb-4">Rp 0</p>
+
+      <!-- Tempat Tampilan Gambar QR Code / Loading -->
+      <div id="qris-container" class="bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl p-4 min-h-[220px] flex items-center justify-center mb-4">
+        <div id="qris-loading" class="flex flex-col items-center gap-2 text-slate-400">
+          <div class="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+          <span class="text-xs">Generating QRIS...</span>
+        </div>
+        <img id="qris-image" src="" alt="QRIS Code" class="hidden w-full h-auto rounded-lg shadow-sm" />
+      </div>
+
+      <!-- Indicator Status Realtime -->
+      <div id="payment-status-badge" class="bg-amber-50 text-amber-700 border border-amber-200 rounded-xl py-2 px-3 text-xs font-semibold flex items-center justify-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-amber-500 animate-ping"></span>
+        Menunggu Pembayaran...
+      </div>
+
+      <!-- Sukses Overlay View -->
+      <div id="success-state" class="hidden flex-col items-center py-6">
+        <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-3xl font-bold mb-3 animate-bounce">
+          ✓
+        </div>
+        <h4 class="text-xl font-bold text-emerald-600 mb-1">Pembayaran LUNAS!</h4>
+        <p class="text-xs text-slate-500">Stok otomatis terpotong di database</p>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Inisialisasi Script Logic -->
+  <script src="app.js"></script>
+</body>
+</html>
