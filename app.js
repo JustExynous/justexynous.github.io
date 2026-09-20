@@ -43,20 +43,34 @@ document.addEventListener("DOMContentLoaded", async () => {
   btnCloseQris.addEventListener("click", closeModalQris);
 });
 
-// Load Dropdown Outlets dan Users dari Supabase
+// Load Dropdown Outlets dan Users
 async function loadOutletsAndUsers() {
-  const { data: outlets } = await supabase.from("outlets").select("*");
-  const { data: users } = await supabase.from("users").select("*");
+  const { data: outlets, error: errOutlets } = await supabase.from("outlets").select("*");
+  const { data: users, error: errUsers } = await supabase.from("users").select("*");
 
-  if (outlets) {
+  if (errOutlets || errUsers) {
+    console.error("Gagal mengambil data login:", errOutlets || errUsers);
+    return;
+  }
+
+  // Isi dropdown outlet
+  if (outlets && outlets.length > 0) {
     selectOutlet.innerHTML = '<option value="">-- Pilih Outlet --</option>' +
       outlets.map(o => `<option value="${o.id}">${o.nama_outlet}</option>`).join("");
   }
 
-  if (users) {
-    selectKasir.innerHTML = '<option value="">-- Pilih Nama Kasir --</option>' +
-      users.map(u => `<option value="${u.id}" data-outlet="${u.outlet_id}">${u.nama_pegawai}</option>`).join("");
-  }
+  // Saring kasir berdasarkan outlet yang dipilih
+  selectOutlet.addEventListener("change", () => {
+    const selectedOutletId = selectOutlet.value;
+    const filteredUsers = users ? users.filter(u => u.outlet_id === selectedOutletId) : [];
+
+    if (filteredUsers.length > 0) {
+      selectKasir.innerHTML = '<option value="">-- Pilih Nama Kasir --</option>' +
+        filteredUsers.map(u => `<option value="${u.id}">${u.nama_pegawai}</option>`).join("");
+    } else {
+      selectKasir.innerHTML = '<option value="">-- Tidak ada kasir di outlet ini --</option>';
+    }
+  });
 }
 
 // Session Check dari LocalStorage
