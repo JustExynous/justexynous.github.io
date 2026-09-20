@@ -1,8 +1,16 @@
-// CONFIG SUPABASE
+// ==========================================================================
+// CONFIG SUPABASE & UTILS
+// ==========================================================================
 const SUPABASE_URL = "https://jhfoyfizlpntjrrklvqh.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpoZm95Zml6bHBudGpycmtsdnFoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk4ODYyNzgsImV4cCI6MjEwNTQ2MjI3OH0.jtVhIFN7-FoA_NhmjB00EmpuVs_pyJolHNV-jed1mMo";
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Menggunakan nama variabel 'supabaseClient' agar tidak bentrok dengan pustaka CDN
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    persistSession: false, // Mencegah pemblokiran Tracking Prevention browser
+    autoRefreshToken: false
+  }
+});
 
 // STATE APLIKASI
 let currentOutlet = null;
@@ -32,7 +40,9 @@ const qrisImage = document.getElementById("qris-image");
 const paymentStatusBadge = document.getElementById("payment-status-badge");
 const successState = document.getElementById("success-state");
 
-// ================= INITALIZATION =================
+// ==========================================================================
+// INITIALIZATION
+// ==========================================================================
 document.addEventListener("DOMContentLoaded", async () => {
   await loadOutletsAndUsers();
   checkSession();
@@ -43,37 +53,49 @@ document.addEventListener("DOMContentLoaded", async () => {
   btnCloseQris.addEventListener("click", closeModalQris);
 });
 
-// Load Dropdown Outlets dan Users
+// Load Dropdown Outlets dan Users dengan Penanganan Error Lengkap
 async function loadOutletsAndUsers() {
-  const { data: outlets, error: errOutlets } = await supabase.from("outlets").select("*");
-  const { data: users, error: errUsers } = await supabase.from("users").select("*");
+  try {
+    const { data: outlets, error: errOutlets } = await supabaseClient.from("outlets").select("*");
+    const { data: users, error: errUsers } = await supabaseClient.from("users").select("*");
 
-  if (errOutlets || errUsers) {
-    console.error("Gagal mengambil data login:", errOutlets || errUsers);
-    return;
-  }
-
-  // Isi dropdown outlet
-  if (outlets && outlets.length > 0) {
-    selectOutlet.innerHTML = '<option value="">-- Pilih Outlet --</option>' +
-      outlets.map(o => `<option value="${o.id}">${o.nama_outlet}</option>`).join("");
-  }
-
-  // Saring kasir berdasarkan outlet yang dipilih
-  selectOutlet.addEventListener("change", () => {
-    const selectedOutletId = selectOutlet.value;
-    const filteredUsers = users ? users.filter(u => u.outlet_id === selectedOutletId) : [];
-
-    if (filteredUsers.length > 0) {
-      selectKasir.innerHTML = '<option value="">-- Pilih Nama Kasir --</option>' +
-        filteredUsers.map(u => `<option value="${u.id}">${u.nama_pegawai}</option>`).join("");
-    } else {
-      selectKasir.innerHTML = '<option value="">-- Tidak ada kasir di outlet ini --</option>';
+    if (errOutlets) {
+      console.error("Gagal mengambil data outlets:", errOutlets);
+      return;
     }
-  });
+
+    if (errUsers) {
+      console.error("Gagal mengambil data users:", errUsers);
+      return;
+    }
+
+    // Populate dropdown outlet
+    if (outlets && outlets.length > 0) {
+      selectOutlet.innerHTML = '<option value="">-- Pilih Outlet --</option>' +
+        outlets.map(o => `<option value="${o.id}">${o.nama_outlet}</option>`).join("");
+    } else {
+      selectOutlet.innerHTML = '<option value="">-- Tabel Outlet Kosong --</option>';
+    }
+
+    // Filter dropdown kasir secara otomatis saat outlet dipilih
+    selectOutlet.addEventListener("change", () => {
+      const selectedOutletId = selectOutlet.value;
+      const filteredUsers = users ? users.filter(u => u.outlet_id === selectedOutletId) : [];
+
+      if (filteredUsers.length > 0) {
+        selectKasir.innerHTML = '<option value="">-- Pilih Nama Kasir --</option>' +
+          filteredUsers.map(u => `<option value="${u.id}">${u.nama_pegawai}</option>`).join("");
+      } else {
+        selectKasir.innerHTML = '<option value="">-- Tidak ada kasir di outlet ini --</option>';
+      }
+    });
+
+  } catch (err) {
+    console.error("Koneksi terputus ke Supabase:", err);
+  }
 }
 
-// Session Check dari LocalStorage
+// Session Check via LocalStorage
 function checkSession() {
   const savedSession = localStorage.getItem("pos_session");
   if (savedSession) {
@@ -113,19 +135,26 @@ function handleLogout() {
   location.reload();
 }
 
-// ================= PRODUCT & CART LOGIC =================
+// ==========================================================================
+// PRODUCT & CART LOGIC
+// ==========================================================================
 async function loadProducts() {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from("products")
     .select("*")
     .eq("outlet_id", currentOutlet.id);
 
-  if (error) return console.error(error);
+  if (error) return console.error("Gagal memuat produk:", error);
   products = data || [];
   renderProducts();
 }
 
 function renderProducts() {
+  if (products.length === 0) {
+    productGrid.innerHTML = `<div class="col-span-full text-center text-slate-400 py-10">Belum ada produk di outlet ini</div>`;
+    return;
+  }
+
   productGrid.innerHTML = products.map(p => `
     <div onclick="addToCart('${p.id}')" class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-indigo-500 cursor-pointer transition flex flex-col justify-between">
       <div>
@@ -146,7 +175,7 @@ window.addToCart = (productId) => {
     if (existingItem.qty < product.stok) {
       existingItem.qty += 1;
     } else {
-      alert("Mencapai batas stok!");
+      alert("Mencapai batas stok yang tersedia!");
     }
   } else {
     cart.push({ ...product, qty: 1 });
@@ -191,7 +220,9 @@ window.removeFromCart = (productId) => {
   renderCart();
 };
 
-// ================= QRIS & REALTIME PAYMENT =================
+// ==========================================================================
+// QRIS & REALTIME PAYMENT LOGIC
+// ==========================================================================
 async function handleCreateQrisPayment() {
   const totalHarga = cart.reduce((acc, item) => acc + (item.harga * item.qty), 0);
   const orderId = `INV-${currentOutlet.id.slice(0, 4)}-${Date.now()}`;
@@ -206,7 +237,7 @@ async function handleCreateQrisPayment() {
 
   try {
     // 1. Simpan Transaksi PENDING ke Supabase
-    const { data: tx, error: txErr } = await supabase
+    const { data: tx, error: txErr } = await supabaseClient
       .from("transactions")
       .insert([{
         midtrans_order_id: orderId,
@@ -227,7 +258,7 @@ async function handleCreateQrisPayment() {
       jumlah: c.qty,
       harga_satuan: c.harga
     }));
-    await supabase.from("transaction_items").insert(itemsToInsert);
+    await supabaseClient.from("transaction_items").insert(itemsToInsert);
 
     // 2. Minta QRIS ke Supabase Edge Function
     const response = await fetch(`${SUPABASE_URL}/functions/v1/charge-qris`, {
@@ -237,27 +268,27 @@ async function handleCreateQrisPayment() {
     });
 
     const result = await response.json();
-    if (!result.qrImageUrl) throw new Error("Gagal mengambil QRIS");
+    if (!result.qrImageUrl) throw new Error("Gagal mengambil QRIS dari server");
 
     // Tampilkan QR Code di Modal
     qrisImage.src = result.qrImageUrl;
     qrisLoading.classList.add("hidden");
     qrisImage.classList.remove("hidden");
 
-    // 3. Pasang Supabase Realtime Listener untuk mendengarkan saat LUNAS
+    // 3. Pasang Supabase Realtime Listener
     subscribeRealtimePayment(orderId);
 
   } catch (err) {
-    alert("Error: " + err.message);
+    alert("Error Pembayaran: " + err.message);
     closeModalQris();
   }
 }
 
 // SUPABASE REALTIME LISTENER (KUNCI OTOMATISASI LUNAS)
 function subscribeRealtimePayment(orderId) {
-  if (activeRealtimeChannel) supabase.removeChannel(activeRealtimeChannel);
+  if (activeRealtimeChannel) supabaseClient.removeChannel(activeRealtimeChannel);
 
-  activeRealtimeChannel = supabase
+  activeRealtimeChannel = supabaseClient
     .channel(`payment-${orderId}`)
     .on(
       "postgres_changes",
@@ -270,7 +301,7 @@ function subscribeRealtimePayment(orderId) {
       (payload) => {
         if (payload.new.status_pembayaran === "SUCCESS") {
           // UPDATE LAYAR MENJADI LUNAS SECARA INSTAN!
-          qrisContainerHide();
+          qrisImage.classList.add("hidden");
           paymentStatusBadge.classList.add("hidden");
           successState.classList.remove("hidden");
           
@@ -289,13 +320,9 @@ function subscribeRealtimePayment(orderId) {
     .subscribe();
 }
 
-function qrisContainerHide() {
-  qrisImage.classList.add("hidden");
-}
-
 function closeModalQris() {
   modalQris.classList.add("hidden");
   if (activeRealtimeChannel) {
-    supabase.removeChannel(activeRealtimeChannel);
+    supabaseClient.removeChannel(activeRealtimeChannel);
   }
 }
