@@ -24,6 +24,7 @@ const screenLogin = document.getElementById("screen-login");
 const screenPos = document.getElementById("screen-pos");
 const selectOutlet = document.getElementById("select-outlet");
 const selectKasir = document.getElementById("select-kasir");
+const inputPin = document.getElementById("input-pin");
 const btnLogin = document.getElementById("btn-login");
 const btnLogout = document.getElementById("btn-logout");
 const productGrid = document.getElementById("product-grid");
@@ -112,22 +113,57 @@ function checkSession() {
   }
 }
 
-function handleLogin() {
+async function handleLogin() {
   const outletId = selectOutlet.value;
   const kasirId = selectKasir.value;
+  const pinInput = inputPin ? inputPin.value.trim() : "";
 
-  if (!outletId || !kasirId) return alert("Pilih Outlet dan Kasir!");
+  if (!outletId || !kasirId) {
+    return alert("Silakan pilih Outlet dan Kasir!");
+  }
 
-  const outletNama = selectOutlet.options[selectOutlet.selectedIndex].text;
-  const kasirNama = selectKasir.options[selectKasir.selectedIndex].text;
+  if (!pinInput) {
+    return alert("Silakan masukkan PIN Kasir!");
+  }
 
-  const sessionData = {
-    outlet: { id: outletId, nama: outletNama },
-    kasir: { id: kasirId, nama: kasirNama }
-  };
+  // 1. Verifikasi PIN ke Database Supabase
+  try {
+    const { data: user, error } = await supabaseClient
+      .from("users")
+      .select("*")
+      .eq("id", kasirId)
+      .single();
 
-  localStorage.setItem("pos_session", JSON.stringify(sessionData));
-  checkSession();
+    if (error || !user) {
+      return alert("Gagal memverifikasi akun kasir!");
+    }
+
+    // Cocokkan PIN yang diinput dengan PIN di database
+    if (user.pin !== pinInput) {
+      alert("PIN Salah! Akses ditolak.");
+      if (inputPin) {
+        inputPin.value = "";
+        inputPin.focus();
+      }
+      return;
+    }
+
+    // 2. Jika PIN Benar, Simpan Session & Masuk ke Aplikasi
+    const outletNama = selectOutlet.options[selectOutlet.selectedIndex].text;
+    const kasirNama = selectKasir.options[selectKasir.selectedIndex].text;
+
+    const sessionData = {
+      outlet: { id: outletId, nama: outletNama },
+      kasir: { id: kasirId, nama: kasirNama, role: user.role }
+    };
+
+    localStorage.setItem("pos_session", JSON.stringify(sessionData));
+    checkSession();
+
+  } catch (err) {
+    console.error("Error verifikasi login:", err);
+    alert("Terjadi kesalahan sistem saat verifikasi PIN.");
+  }
 }
 
 function handleLogout() {
