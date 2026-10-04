@@ -377,7 +377,8 @@ const DataService = {
             username: staffData.username ? staffData.username.trim().toLowerCase() : staffData.name.toLowerCase().replace(/\s+/g, '_'),
             name: staffData.name.trim(),
             role: staffData.role,
-            outlet_id: staffData.outlet,
+            outlet_id: staffData.outlet || staffData.outletId,
+            outlet: staffData.outlet || staffData.outletId,
             phone: staffData.phone ? staffData.phone.trim() : '',
             password: staffData.password ? String(staffData.password).trim() : '123',
             status: staffData.status || 'Aktif',
@@ -392,18 +393,30 @@ const DataService = {
                         .update(payload)
                         .eq('id', staffData.id)
                         .select();
-                    if (!error && data && data.length > 0) return data[0];
+                    if (!error && data && data.length > 0) payload.id = data[0].id;
                 } else {
                     const { data, error } = await supabaseClient
                         .from('profiles')
                         .upsert(payload, { onConflict: 'username' })
                         .select();
-                    if (!error && data && data.length > 0) return data[0];
+                    if (!error && data && data.length > 0) payload.id = data[0].id;
                 }
             } catch (err) {
                 console.warn("Supabase save staff error:", err);
             }
         }
+
+        // Simpan juga ke local list agar selalu sinkron
+        const localList = loadData("staff", DEFAULT_STAFF);
+        const idx = localList.findIndex(s => (s.username && s.username === payload.username) || (staffData.id && String(s.id) === String(staffData.id)));
+        if (idx >= 0) {
+            localList[idx] = { ...localList[idx], ...payload, id: localList[idx].id || staffData.id || `stf-${Date.now()}` };
+        } else {
+            localList.push({ ...payload, id: staffData.id || `stf-${Date.now()}` });
+        }
+        saveData("staff", localList);
+        staffList = localList;
+
         return payload;
     },
 
@@ -416,12 +429,20 @@ const DataService = {
                 if (staffUsername) {
                     await supabaseClient.from('profiles').delete().eq('username', staffUsername);
                 }
-                return true;
             } catch (err) {
                 console.warn("Supabase delete staff error:", err);
             }
         }
-        return false;
+
+        let localList = loadData("staff", DEFAULT_STAFF);
+        localList = localList.filter(s => {
+            if (staffId && String(s.id) === String(staffId)) return false;
+            if (staffUsername && s.username === staffUsername) return false;
+            return true;
+        });
+        saveData("staff", localList);
+        staffList = localList;
+        return true;
     },
 
     async getSalesHistory() {
