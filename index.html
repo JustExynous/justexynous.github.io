@@ -778,9 +778,9 @@ button:active {
                 <h1>🥟 Goramik POS</h1>
                 <p>Sistem Kasir & Manajemen Multi-Cabang</p>
                 <div style="margin-bottom: 15px;">
-                    <button type="button" id="supabase-status-badge-login" class="badge badge-orange" style="cursor: pointer; border: none; font-size: 13px; width: 100%; padding: 8px;" onclick="openModal('supabase-modal')">
-                        🟡 Mode Local / Demo (Klik Hubungkan Cloud)
-                    </button>
+                    <span id="supabase-status-badge-login" class="badge badge-orange" style="display: inline-block; font-size: 13px; width: 100%; padding: 8px; text-align: center;" title="Status Server Database Cloud">
+                        🟡 Mode Local / Demo
+                    </span>
                 </div>
             </div>
             
@@ -834,9 +834,9 @@ button:active {
             <div class="header-brand">
                 <span class="brand-title">🥟 Goramik POS</span>
                 <span class="badge badge-green" id="pos-display-outlet">Outlet: -</span>
-                <button type="button" id="supabase-status-badge-pos" class="badge badge-orange" style="cursor: pointer; border: none;" onclick="openModal('supabase-modal')">
-                    🟡 Local
-                </button>
+                <span id="supabase-status-badge-pos" class="badge badge-orange" style="font-size: 12px;" title="Status Koneksi Database">
+                    🟡 Mode Local
+                </span>
             </div>
             <div class="header-actions">
                 <div class="user-badge-info">
@@ -906,9 +906,9 @@ button:active {
             <div class="header-brand">
                 <span class="brand-title">👑 Goramik Manager & Owner Hub</span>
                 <span class="badge badge-purple" id="admin-badge-role">Manajer / Pemilik</span>
-                <button type="button" id="supabase-status-badge" class="badge badge-orange" style="cursor: pointer; border: none;" onclick="openModal('supabase-modal')">
+                <span id="supabase-status-badge" class="badge badge-orange" style="cursor: pointer; font-size: 12px;" onclick="switchToSettingsTab()" title="Klik untuk membuka Pengaturan Cloud Database">
                     🟡 Local
-                </button>
+                </span>
             </div>
             <div class="header-actions">
                 <div class="user-badge-info">
@@ -941,6 +941,9 @@ button:active {
                 </button>
                 <button class="nav-tab-btn" data-tab="tab-products">
                     🥟 Kelola Menu Produk
+                </button>
+                <button class="nav-tab-btn" id="nav-tab-settings" data-tab="tab-settings">
+                    ⚙️ Pengaturan Cloud (Owner)
                 </button>
             </aside>
 
@@ -1170,38 +1173,67 @@ button:active {
                     </div>
                 </section>
 
+                <!-- TAB 6: PENGATURAN SUPABASE CLOUD (KHUSUS OWNER) -->
+                <section id="tab-settings" class="tab-content">
+                    <div class="dashboard-title-bar">
+                        <h2>⚙️ Pengaturan Koneksi Database & Cloud (Supabase)</h2>
+                        <span class="badge badge-red">🔒 Hak Akses Khusus Pemilik (Owner)</span>
+                    </div>
+
+                    <div class="content-card">
+                        <div class="content-card-header">
+                            <h3>Kredensial Server Database Supabase</h3>
+                            <span id="settings-conn-indicator" class="badge badge-orange">🟡 Mode Local / Demo</span>
+                        </div>
+                        
+                        <p style="font-size: 13px; color: var(--text-light); margin-bottom: 16px; line-height: 1.6;">
+                            Sebagai <strong>Pemilik (Owner)</strong>, Anda dapat mengatur koneksi database cloud Supabase di sini. Begitu Project URL dan Anon Key tersimpan, seluruh data pegawai, menu produk, stok cabang, dan riwayat transaksi akan disinkronkan secara *live* melalui database Supabase PostgreSQL.
+                        </p>
+
+                        <div id="supabase-msg-box" style="display:none; padding: 12px 16px; border-radius: 8px; font-size: 13px; margin-bottom: 16px;"></div>
+
+                        <form id="supabase-settings-form" onsubmit="event.preventDefault(); handleSaveSupabaseConfig();">
+                            <div class="input-group">
+                                <label for="input-supabase-url">Project URL Supabase</label>
+                                <input type="url" id="input-supabase-url" class="form-control" placeholder="https://xyzcompany.supabase.co" required>
+                                <small style="color: #666; font-size: 11px;">Ditemukan di Supabase Dashboard ➜ Project Settings ➜ API ➜ Project URL</small>
+                            </div>
+                            
+                            <div class="input-group">
+                                <label for="input-supabase-key">Anon / Public API Key Supabase</label>
+                                <div style="position: relative;">
+                                    <input type="password" id="input-supabase-key" class="form-control" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." required style="padding-right: 45px;">
+                                    <button type="button" id="btn-toggle-key-visibility" onclick="toggleKeyVisibility()" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: transparent; border: none; font-size: 16px; cursor: pointer; padding: 4px;" title="Tampilkan / Sembunyikan Key">👁️</button>
+                                </div>
+                                <small style="color: #666; font-size: 11px;">Ditemukan di Supabase Dashboard ➜ Project Settings ➜ API ➜ Project API keys (anon / public)</small>
+                            </div>
+
+                            <div style="display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap;">
+                                <button type="submit" id="btn-save-supabase" class="btn-primary">
+                                    💾 Simpan & Hubungkan Database
+                                </button>
+                                <button type="button" class="btn-danger" onclick="handleClearSupabaseConfig()">
+                                    🔌 Putus Koneksi / Reset ke Mode Lokal
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Panduan Terpusat Otomatis untuk Semua Cabang -->
+                    <div class="content-card" style="border-left: 4px solid #2d6a4f; background: #fdfefe;">
+                        <h3 style="margin-bottom: 10px; color: #2d6a4f;">💡 Cara Menghubungkan Seluruh Perangkat Kasir & Manajer Secara Otomatis:</h3>
+                        <p style="font-size: 13px; color: #444; line-height: 1.6; margin-bottom: 10px;">
+                            Agar <strong>seluruh komputer kasir dan perangkat manajer di semua cabang</strong> langsung otomatis terhubung ke database cloud tanpa perlu menyetel ulang satu per satu:
+                        </p>
+                        <ol style="font-size: 13px; color: #444; line-height: 1.8; padding-left: 20px;">
+                            <li>Buka file <code>config.js</code> yang ada di folder aplikasi POS ini.</li>
+                            <li>Masukkan <code>url</code> dan <code>anonKey</code> Supabase Anda ke dalam objek <code>GLOBAL_SUPABASE_CONFIG</code>.</li>
+                            <li>Kapan pun aplikasi dibuka di komputer kasir mana pun, sistem akan <strong>otomatis langsung terhubung ke database Supabase Cloud</strong> tanpa intervensi manual kasir.</li>
+                        </ol>
+                    </div>
+                </section>
+
             </main>
-        </div>
-    </div>
-
-    <!-- ==================== MODAL KONFIGURASI SUPABASE ==================== -->
-    <div id="supabase-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>⚙️ Pengaturan Koneksi Supabase</h3>
-                <button type="button" class="modal-close-btn" onclick="closeModal('supabase-modal')">&times;</button>
-            </div>
-            <p style="font-size: 13px; color: var(--text-light); margin-bottom: 12px;">
-                Masukkan kredensial project Supabase Anda untuk menghubungkan data langsung ke database cloud PostgreSQL.
-            </p>
-            
-            <div id="supabase-msg-box" style="display:none; padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 14px;"></div>
-
-            <form id="supabase-form" onsubmit="event.preventDefault(); handleSaveSupabaseConfig();">
-                <div class="input-group">
-                    <label for="input-supabase-url">Project URL</label>
-                    <input type="url" id="input-supabase-url" class="form-control" placeholder="https://your-project.supabase.co" required>
-                </div>
-                <div class="input-group">
-                    <label for="input-supabase-key">Anon Public API Key</label>
-                    <input type="text" id="input-supabase-key" class="form-control" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." required>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn-secondary" onclick="closeModal('supabase-modal')">Tutup</button>
-                    <button type="button" class="btn-danger btn-sm" onclick="handleClearSupabaseConfig()">Reset Local</button>
-                    <button type="button" id="btn-save-supabase" class="btn-primary" onclick="handleSaveSupabaseConfig()">Hubungkan Cloud</button>
-                </div>
-            </form>
         </div>
     </div>
 
@@ -1340,6 +1372,7 @@ button:active {
 
     <!-- Supabase JS Client & App Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
