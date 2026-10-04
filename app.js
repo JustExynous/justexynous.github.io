@@ -95,9 +95,15 @@ function saveData(key, data) {
 function getSupabaseConfig() {
     const savedUrl = localStorage.getItem('goramik_supabase_url') || "";
     const savedKey = localStorage.getItem('goramik_supabase_key') || "";
+    
+    const globalConfig = window.GLOBAL_SUPABASE_CONFIG || {};
+    const globalUrl = (globalConfig.url || "").trim();
+    const globalKey = (globalConfig.anonKey || "").trim();
+
     return {
-        url: savedUrl.trim(),
-        anonKey: savedKey.trim()
+        url: (savedUrl.trim() || globalUrl),
+        anonKey: (savedKey.trim() || globalKey),
+        isOverride: !!savedUrl.trim()
     };
 }
 
@@ -642,6 +648,8 @@ function updateConnectionBadges() {
         document.getElementById('supabase-status-badge-pos'),
         document.getElementById('supabase-status-badge-login')
     ];
+    const settingsIndicator = document.getElementById('settings-conn-indicator');
+
     badges.forEach(b => {
         if (!b) return;
         if (isSupabaseConnected) {
@@ -650,13 +658,59 @@ function updateConnectionBadges() {
             b.title = 'Terhubung langsung ke database cloud Supabase PostgreSQL';
         } else {
             b.className = 'badge badge-orange';
-            b.innerHTML = '🟡 Mode Local / Demo (Klik Hubungkan Cloud)';
-            b.title = 'Klik untuk menghubungkan Project URL & API Key Supabase';
+            b.innerHTML = '🟡 Mode Local / Demo';
+            b.title = 'Koneksi database dikelola oleh Pemilik (Owner) di Menu Pengaturan';
         }
     });
+
+    if (settingsIndicator) {
+        if (isSupabaseConnected) {
+            settingsIndicator.className = 'badge badge-green';
+            settingsIndicator.innerHTML = '🟢 Terhubung ke Cloud Live';
+        } else {
+            settingsIndicator.className = 'badge badge-orange';
+            settingsIndicator.innerHTML = '🟡 Mode Local / Demo';
+        }
+    }
+}
+
+function toggleKeyVisibility() {
+    const keyInput = document.getElementById('input-supabase-key');
+    const btn = document.getElementById('btn-toggle-key-visibility');
+    if (!keyInput) return;
+    if (keyInput.type === 'password') {
+        keyInput.type = 'text';
+        if (btn) btn.innerText = '🙈';
+    } else {
+        keyInput.type = 'password';
+        if (btn) btn.innerText = '👁️';
+    }
+}
+
+function switchToSettingsTab() {
+    if (currentUser.role !== 'owner') {
+        showToast("Pengaturan koneksi cloud database hanya dapat diakses oleh Pemilik (Owner).", "info");
+        return;
+    }
+    const btnSettings = document.getElementById('nav-tab-settings');
+    if (btnSettings) btnSettings.click();
+}
+
+function renderSettingsTab() {
+    const config = getSupabaseConfig();
+    const urlInput = document.getElementById('input-supabase-url');
+    const keyInput = document.getElementById('input-supabase-key');
+    if (urlInput) urlInput.value = config.url || "";
+    if (keyInput) keyInput.value = config.anonKey || "";
+    updateConnectionBadges();
 }
 
 async function handleSaveSupabaseConfig() {
+    if (currentUser.role !== 'owner') {
+        showToast("⛔ Hanya Pemilik (Owner) yang berhak mengubah konfigurasi database!", "error");
+        return;
+    }
+
     const urlInput = document.getElementById('input-supabase-url');
     const keyInput = document.getElementById('input-supabase-key');
     const msgBox = document.getElementById('supabase-msg-box');
@@ -670,9 +724,9 @@ async function handleSaveSupabaseConfig() {
             msgBox.style.display = 'block';
             msgBox.style.background = '#f8d7da';
             msgBox.style.color = '#721c24';
-            msgBox.innerText = "❌ Mohon isi Project URL dan API Key terlebih dahulu!";
+            msgBox.innerText = "❌ Mohon isi Project URL dan Anon Key terlebih dahulu!";
         }
-        showToast("Project URL dan API Key wajib diisi!", "error");
+        showToast("Project URL dan Anon Key wajib diisi!", "error");
         return;
     }
 
@@ -689,13 +743,13 @@ async function handleSaveSupabaseConfig() {
 
     if (btnSave) {
         btnSave.disabled = true;
-        btnSave.innerText = "⏳ Menguji Koneksi...";
+        btnSave.innerText = "⏳ Menguji Koneksi Cloud...";
     }
     if (msgBox) {
         msgBox.style.display = 'block';
         msgBox.style.background = '#d1ecf1';
         msgBox.style.color = '#0c5460';
-        msgBox.innerText = "⏳ Sedang menguji koneksi ke server Supabase...";
+        msgBox.innerText = "⏳ Sedang menguji koneksi ke server Supabase Cloud...";
     }
 
     try {
@@ -710,7 +764,7 @@ async function handleSaveSupabaseConfig() {
             showToast("Koneksi Supabase gagal! Periksa URL dan API Key.", "error");
             if (btnSave) {
                 btnSave.disabled = false;
-                btnSave.innerText = "Hubungkan Cloud";
+                btnSave.innerText = "💾 Simpan & Hubungkan Database";
             }
             return;
         }
@@ -720,19 +774,17 @@ async function handleSaveSupabaseConfig() {
             msgBox.style.display = 'block';
             msgBox.style.background = '#d4edda';
             msgBox.style.color = '#155724';
-            msgBox.innerText = "✅ Berhasil terhubung ke Supabase Cloud!";
+            msgBox.innerText = "✅ Berhasil terhubung ke Supabase Cloud PostgreSQL Live!";
         }
-        showToast("🟢 Supabase Cloud Live terhubung!");
+        showToast("🟢 Database Supabase Cloud Live berhasil dihubungkan!");
         
         await initAppData();
+        renderSettingsTab();
 
-        setTimeout(() => {
-            closeModal('supabase-modal');
-            if (btnSave) {
-                btnSave.disabled = false;
-                btnSave.innerText = "Hubungkan Cloud";
-            }
-        }, 1200);
+        if (btnSave) {
+            btnSave.disabled = false;
+            btnSave.innerText = "💾 Simpan & Hubungkan Database";
+        }
     } catch (e) {
         if (msgBox) {
             msgBox.style.display = 'block';
@@ -742,25 +794,31 @@ async function handleSaveSupabaseConfig() {
         }
         if (btnSave) {
             btnSave.disabled = false;
-            btnSave.innerText = "Hubungkan Cloud";
+            btnSave.innerText = "💾 Simpan & Hubungkan Database";
         }
     }
 }
 
 function handleClearSupabaseConfig() {
+    if (currentUser.role !== 'owner') {
+        showToast("⛔ Hanya Pemilik (Owner) yang berhak mengubah konfigurasi database!", "error");
+        return;
+    }
     if (confirm("Reset konfigurasi Supabase dan kembali ke Mode Demo Lokal?")) {
         localStorage.removeItem('goramik_supabase_url');
         localStorage.removeItem('goramik_supabase_key');
         
         const msgBox = document.getElementById('supabase-msg-box');
         if (msgBox) {
-            msgBox.style.display = 'none';
-            msgBox.innerText = '';
+            msgBox.style.display = 'block';
+            msgBox.style.background = '#fff3cd';
+            msgBox.style.color = '#856404';
+            msgBox.innerText = "Konfigurasi di-reset. Aplikasi beralih ke Mode Lokal.";
         }
         
-        closeModal('supabase-modal');
         showToast("Koneksi Supabase di-reset ke mode lokal.");
         initAppData();
+        renderSettingsTab();
     }
 }
 
@@ -850,15 +908,18 @@ function openAdminDashboard() {
     // Role-based permission controls:
     const staffWarning = document.getElementById('staff-manager-warning');
     const btnAddStaff = document.getElementById('btn-open-add-staff');
+    const navTabSettings = document.getElementById('nav-tab-settings');
 
     if (currentUser.role === 'manajer') {
-        // Manajer: Staff management read-only
+        // Manajer: Staff management read-only & Sembunyikan Tab Pengaturan
         if (staffWarning) staffWarning.style.display = 'block';
         if (btnAddStaff) btnAddStaff.style.display = 'none';
+        if (navTabSettings) navTabSettings.style.display = 'none';
     } else {
-        // Owner: Full access
+        // Owner: Full access & Tampilkan Tab Pengaturan
         if (staffWarning) staffWarning.style.display = 'none';
         if (btnAddStaff) btnAddStaff.style.display = 'inline-flex';
+        if (navTabSettings) navTabSettings.style.display = 'inline-flex';
     }
 
     switchPage(adminPage);
@@ -867,6 +928,7 @@ function openAdminDashboard() {
     renderInventoryTab();
     renderSalesTab();
     renderProductsTab();
+    if (currentUser.role === 'owner') renderSettingsTab();
 }
 
 document.getElementById('btn-go-dashboard')?.addEventListener('click', openAdminDashboard);
@@ -1119,6 +1181,7 @@ document.querySelectorAll('.nav-tab-btn').forEach(btn => {
         if (targetTabId === 'tab-inventory') renderInventoryTab();
         if (targetTabId === 'tab-sales') renderSalesTab();
         if (targetTabId === 'tab-products') renderProductsTab();
+        if (targetTabId === 'tab-settings') renderSettingsTab();
     });
 });
 
@@ -1556,6 +1619,9 @@ window.openPosPage = openPosPage;
 window.openAdminDashboard = openAdminDashboard;
 window.handleSaveSupabaseConfig = handleSaveSupabaseConfig;
 window.handleClearSupabaseConfig = handleClearSupabaseConfig;
+window.toggleKeyVisibility = toggleKeyVisibility;
+window.switchToSettingsTab = switchToSettingsTab;
+window.renderSettingsTab = renderSettingsTab;
 window.saveStaff = saveStaff;
 window.editStaff = editStaff;
 window.deleteStaff = deleteStaff;
