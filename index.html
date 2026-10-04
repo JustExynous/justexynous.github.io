@@ -1,155 +1,603 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>POS Kasir QRIS</title>
-  
-  <!-- Manifest & PWA Meta -->
-  <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#4f46e5" />
-  
-  <!-- Tailwind CSS CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- Tambahkan File Style Pastel Custom Anda Di Sini -->
-  <link rel="stylesheet" href="style.css" />
-  
-  <!-- Supabase JS Client CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Goramik POS & Manajemen Outlet</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#a8e6cf">
+    <!-- Immediate Modal Script (Zero latency guarantee) -->
+    <script>
+        function openModal(id) {
+            var modal = document.getElementById(id);
+            if (modal) {
+                modal.classList.add('active');
+                modal.style.display = 'flex';
+            }
+        }
+        function closeModal(id) {
+            var modal = document.getElementById(id);
+            if (modal) {
+                modal.classList.remove('active');
+                modal.style.display = 'none';
+            }
+        }
+        window.openModal = openModal;
+        window.closeModal = closeModal;
+    </script>
 </head>
-<body class="bg-slate-100 font-sans text-slate-800 antialiased min-h-screen">
+<body>
 
-  <!-- ================= LAYAR LOGIN PIN ================= -->
-  <div id="screen-login" class="flex flex-col items-center justify-center min-h-screen p-4">
-    <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-sm text-center">
-      <div class="w-16 h-16 bg-indigo-600 text-white rounded-2xl flex items-center justify-center text-2xl font-bold mx-auto mb-4">
-        POS
-      </div>
-      <h2 class="text-2xl font-bold mb-1 text-slate-900">Masuk Kasir</h2>
-      <p class="text-sm text-slate-500 mb-6">Pilih outlet dan masukkan PIN Kasir</p>
+    <!-- ==================== HALAMAN LOGIN ==================== -->
+    <div id="login-page" class="page active">
+        <div class="login-card">
+            <div class="login-header">
+                <h1>🥟 Goramik POS</h1>
+                <p>Sistem Kasir & Manajemen Multi-Cabang</p>
+                <div style="margin-bottom: 15px;">
+                    <button type="button" id="supabase-status-badge-login" class="badge badge-orange" style="cursor: pointer; border: none; font-size: 13px; width: 100%; padding: 8px;" onclick="openModal('supabase-modal')">
+                        🟡 Mode Local / Demo (Klik Hubungkan Cloud)
+                    </button>
+                </div>
+            </div>
+            
+            <form id="login-form" onsubmit="event.preventDefault(); handleLogin();">
+                <div class="input-group">
+                    <label for="outlet-select">Pilih Outlet Penempatan</label>
+                    <select id="outlet-select" required>
+                        <option value="" disabled selected>-- Pilih Outlet --</option>
+                        <option value="antang-01">Antang 01 (Pusat)</option>
+                        <option value="antang-02">Antang 02 (Cabang)</option>
+                        <option value="tamalanrea-01">Tamalanrea 01 (Cabang)</option>
+                    </select>
+                </div>
 
-      <div class="text-left mb-4">
-        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Outlet</label>
-        <select id="select-outlet" class="w-full border border-slate-300 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-          <option value="">-- Pilih Outlet --</option>
-        </select>
-      </div>
+                <div class="input-group">
+                    <label for="role-select">Peran</label>
+                    <select id="role-select" required>
+                        <option value="kasir">Staff (Kasir)</option>
+                        <option value="manajer">Manajer Cabang</option>
+                        <option value="owner">Pemilik (Owner)</option>
+                    </select>
+                </div>
 
-      <div class="text-left mb-6">
-        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Kasir</label>
-        <select id="select-kasir" class="w-full border border-slate-300 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-          <option value="">-- Pilih Nama Kasir --</option>
-        </select>
-      </div>
+                <div class="input-group">
+                    <label for="user-name">Nama Pengguna</label>
+                    <input type="text" id="user-name" placeholder="Masukkan nama pengguna..." required autocomplete="off">
+                </div>
 
-      <!-- Tambahkan Field PIN Ini -->
-      <div class="text-left mb-6">
-        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">PIN Kasir (6 Digit)</label>
-        <input 
-          type="password" 
-          id="input-pin" 
-          maxlength="6" 
-          placeholder="••••••" 
-          class="w-full border border-slate-300 rounded-xl p-3 text-center tracking-widest text-lg font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500" 
-        />
-      </div>
+                <div class="input-group">
+                    <label for="user-password">Password / PIN</label>
+                    <input type="password" id="user-password" placeholder="Masukkan password/PIN..." required autocomplete="current-password">
+                </div>
+                <div style="font-size: 11px; color: var(--text-light); margin-top: -6px; margin-bottom: 12px; line-height: 1.5; background: #f8f9fa; padding: 8px 10px; border-radius: 6px; border-left: 3px solid #6c5ce7;">
+                    🔑 <strong>Daftar Akun Demo Resmi (PIN: 123):</strong><br>
+                    • <strong>Owner:</strong> <code>owner</code> (Akses Semua Cabang)<br>
+                    • <strong>Antang 01:</strong> Mgr: <code>andi</code> | Kasir: <code>rahmat</code><br>
+                    • <strong>Antang 02:</strong> Mgr: <code>faisal</code> | Kasir: <code>siti</code><br>
+                    • <strong>Tamalanrea 01:</strong> Mgr: <code>budi_mgr</code> | Kasir: <code>dewi</code>
+                </div>
 
-      <button id="btn-login" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3.5 rounded-xl transition duration-200 shadow-lg shadow-indigo-200">
-        Masuk Aplikasi
-      </button>
-    </div>
-  </div>
-
-
-  <!-- ================= LAYAR UTAMA KASIR ================= -->
-  <div id="screen-pos" class="hidden min-h-screen flex flex-col md:flex-row">
-    
-    <!-- Kolom Kiri: Katalog Produk -->
-    <div class="flex-1 p-4 md:p-6 overflow-y-auto">
-      <!-- Topbar Header -->
-      <div class="flex justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-        <div>
-          <h1 id="header-outlet-name" class="font-bold text-lg text-slate-900">Outlet -</h1>
-          <p id="header-kasir-name" class="text-xs text-slate-500">Kasir: -</p>
+                <button type="submit" id="btn-login" class="btn-primary btn-full mt-2">
+                    Masuk ke Sistem ➜
+                </button>
+            </form>
         </div>
-        <button id="btn-logout" class="text-xs bg-slate-100 hover:bg-red-50 text-red-600 font-semibold px-3 py-2 rounded-lg transition">
-          Keluar
-        </button>
-      </div>
-
-      <!-- Grid Produk -->
-      <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-500 mb-3">Daftar Produk</h2>
-      <div id="product-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-        <!-- Card produk di-render via JS -->
-      </div>
     </div>
 
-    <!-- Kolom Kanan: Keranjang Belanja & Pembayaran -->
-    <div class="w-full md:w-96 bg-white border-t md:border-t-0 md:border-l border-slate-200 flex flex-col h-auto md:h-screen sticky top-0">
-      <div class="p-4 border-b border-slate-200 bg-slate-50">
-        <h2 class="font-bold text-slate-900">Keranjang Belanja</h2>
-      </div>
+    <!-- ==================== HALAMAN POS (KASIR) ==================== -->
+    <div id="pos-page" class="page">
+        <header class="app-header">
+            <div class="header-brand">
+                <span class="brand-title">🥟 Goramik POS</span>
+                <span class="badge badge-green" id="pos-display-outlet">Outlet: -</span>
+                <button type="button" id="supabase-status-badge-pos" class="badge badge-orange" style="cursor: pointer; border: none;" onclick="openModal('supabase-modal')">
+                    🟡 Local
+                </button>
+            </div>
+            <div class="header-actions">
+                <div class="user-badge-info">
+                    <span id="pos-display-user">Kasir: -</span>
+                </div>
+                <button id="btn-go-dashboard" class="btn-info btn-sm" style="display: none;">
+                    📊 Buka Dashboard
+                </button>
+                <button id="btn-logout" class="btn-danger btn-sm">
+                    🚪 Keluar
+                </button>
+            </div>
+        </header>
 
-      <!-- List Cart Items -->
-      <div id="cart-list" class="flex-1 overflow-y-auto p-4 space-y-3 min-h-[200px]">
-        <div class="text-center text-slate-400 py-10 text-sm">Keranjang masih kosong</div>
-      </div>
+        <div class="pos-container">
+            <!-- Area Daftar Produk -->
+            <main class="product-area">
+                <div class="product-toolbar">
+                    <h3>Menu Makanan & Sambal</h3>
+                    <input type="text" id="search-product" class="form-control" placeholder="🔍 Cari menu...">
+                </div>
+                <div class="product-grid" id="product-list">
+                    <!-- Produk dirender secara dinamis oleh JS -->
+                </div>
+            </main>
 
-      <!-- Footer Ringkasan -->
-      <div class="p-4 border-t border-slate-200 bg-slate-50">
-        <div class="flex justify-between items-center mb-4">
-          <span class="text-slate-500 font-medium">Total Harga</span>
-          <span id="cart-total" class="text-xl font-bold text-slate-900">Rp 0</span>
+            <!-- Area Keranjang & Checkout -->
+            <aside class="cart-area">
+                <div class="cart-header">
+                    <h3>Keranjang Pesanan</h3>
+                    <button class="btn-secondary btn-sm" id="btn-clear-cart" title="Kosongkan Keranjang">
+                        🗑️ Reset
+                    </button>
+                </div>
+
+                <div class="cart-items" id="cart-items">
+                    <!-- Item keranjang dirender oleh JS -->
+                </div>
+                
+                <div class="cart-summary">
+                    <div class="total-row">
+                        <span>Total Bayar:</span>
+                        <strong id="cart-total">Rp 0</strong>
+                    </div>
+
+                    <label style="font-size: 13px; font-weight: 600; display: block; margin-bottom: 6px;">Metode Pembayaran:</label>
+                    <div class="payment-methods">
+                        <label class="payment-option">
+                            <input type="radio" name="payment" value="tunai" checked> 💵 Tunai (Cash)
+                        </label>
+                        <label class="payment-option">
+                            <input type="radio" name="payment" value="qris"> 📱 QRIS
+                        </label>
+                    </div>
+
+                    <button id="btn-checkout" class="btn-checkout">
+                        ✅ Proses Pembayaran
+                    </button>
+                </div>
+            </aside>
         </div>
-
-        <button id="btn-pay-qris" disabled class="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-bold py-3.5 rounded-xl transition shadow-lg shadow-emerald-100 flex items-center justify-center gap-2">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
-          Bayar via QRIS
-        </button>
-      </div>
     </div>
-  </div>
 
+    <!-- ==================== HALAMAN DASHBOARD PEMILIK & MANAJER ==================== -->
+    <div id="admin-page" class="page">
+        <header class="app-header">
+            <div class="header-brand">
+                <span class="brand-title">👑 Goramik Manager & Owner Hub</span>
+                <span class="badge badge-purple" id="admin-badge-role">Manajer / Pemilik</span>
+                <button type="button" id="supabase-status-badge" class="badge badge-orange" style="cursor: pointer; border: none;" onclick="openModal('supabase-modal')">
+                    🟡 Local
+                </button>
+            </div>
+            <div class="header-actions">
+                <div class="user-badge-info">
+                    <span id="admin-display-name">Halo, Admin</span>
+                </div>
+                <button id="btn-open-pos" class="btn-primary btn-sm">
+                    🛒 Buka Mesin Kasir (POS)
+                </button>
+                <button id="btn-admin-logout" class="btn-danger btn-sm">
+                    🚪 Keluar
+                </button>
+            </div>
+        </header>
 
-  <!-- ================= MODAL PEMBAYARAN QRIS ================= -->
-  <div id="modal-qris" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl p-6 max-w-sm w-full text-center shadow-2xl relative animate-in fade-in zoom-in duration-200">
-      
-      <!-- Close Button -->
-      <button id="btn-close-qris" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-xl font-bold p-2">✕</button>
+        <div class="dashboard-layout">
+            <!-- Sidebar Tab Menu -->
+            <aside class="dashboard-sidebar">
+                <div class="sidebar-heading">Menu Utama</div>
+                <button class="nav-tab-btn active" data-tab="tab-overview">
+                    📊 Ringkasan & Metrik
+                </button>
+                <button class="nav-tab-btn" data-tab="tab-staff">
+                    👥 Manajemen Pegawai
+                </button>
+                <button class="nav-tab-btn" data-tab="tab-inventory">
+                    📦 Supply & Inventory
+                </button>
+                <button class="nav-tab-btn" data-tab="tab-sales">
+                    📈 Laporan Penjualan
+                </button>
+                <button class="nav-tab-btn" data-tab="tab-products">
+                    🥟 Kelola Menu Produk
+                </button>
+            </aside>
 
-      <h3 class="text-lg font-bold text-slate-900 mb-1">Scan QRIS Untuk Membayar</h3>
-      <p id="qris-total-text" class="text-2xl font-black text-indigo-600 mb-4">Rp 0</p>
+            <!-- Main Content Area -->
+            <main class="dashboard-main">
+                
+                <!-- TAB 1: OVERVIEW / RINGKASAN -->
+                <section id="tab-overview" class="tab-content active">
+                    <div class="dashboard-title-bar">
+                        <h2>Ringkasan Kinerja Bisnis</h2>
+                        <div class="d-flex align-center gap-2">
+                            <select id="overview-outlet-filter" class="form-control" style="width: auto;">
+                                <option value="all">Semua Cabang (Konsolidasi)</option>
+                                <option value="antang-01">Antang 01</option>
+                                <option value="antang-02">Antang 02</option>
+                                <option value="tamalanrea-01">Tamalanrea 01</option>
+                            </select>
+                        </div>
+                    </div>
 
-      <!-- Tempat Tampilan Gambar QR Code / Loading -->
-      <div id="qris-container" class="bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl p-4 min-h-[220px] flex items-center justify-center mb-4">
-        <div id="qris-loading" class="flex flex-col items-center gap-2 text-slate-400">
-          <div class="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-          <span class="text-xs">Generating QRIS...</span>
+                    <!-- Metrics Cards -->
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <div class="metric-icon green">💰</div>
+                            <div class="metric-info">
+                                <h5>Total Pendapatan</h5>
+                                <div class="metric-value" id="kpi-total-revenue">Rp 0</div>
+                            </div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-icon blue">🧾</div>
+                            <div class="metric-info">
+                                <h5>Total Transaksi</h5>
+                                <div class="metric-value" id="kpi-total-orders">0 Transaksi</div>
+                            </div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-icon purple">👥</div>
+                            <div class="metric-info">
+                                <h5>Jumlah Pegawai</h5>
+                                <div class="metric-value" id="kpi-total-staff">0 Orang</div>
+                            </div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-icon yellow">📦</div>
+                            <div class="metric-info">
+                                <h5>Total Stok Tersedia</h5>
+                                <div class="metric-value" id="kpi-total-stock">0 Pcs</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Breakdown Pendapatan Tiap Cabang -->
+                    <div class="content-card">
+                        <div class="content-card-header">
+                            <h3>Perbandingan Pendapatan Antar Cabang</h3>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Nama Outlet</th>
+                                        <th>Total Transaksi</th>
+                                        <th>Pendapatan Tunai</th>
+                                        <th>Pendapatan QRIS</th>
+                                        <th>Total Omset</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="branch-comparison-tbody">
+                                    <!-- Diisi JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- TAB 2: MANAJEMEN PEGAWAI -->
+                <section id="tab-staff" class="tab-content">
+                    <div class="dashboard-title-bar">
+                        <h2>Daftar & Penempatan Pegawai Outlet</h2>
+                        <button class="btn-primary" id="btn-open-add-staff">
+                            ➕ Tambah Pegawai Baru
+                        </button>
+                    </div>
+
+                    <div id="staff-manager-warning" style="display:none; padding: 12px 16px; background: #fff3cd; color: #856404; border: 1px solid #ffeeba; border-radius: 8px; margin-bottom: 15px; font-size: 13px;">
+                        🔒 <strong>Hak Akses Terbatas (Manajer Cabang):</strong> Anda hanya dapat melihat data pegawai. Penambahan, pengeditan, atau penghapusan pegawai hanya dapat dilakukan oleh <strong>Pemilik (Owner)</strong>.
+                    </div>
+
+                    <div class="content-card">
+                        <div class="content-card-header">
+                            <h3>Semua Pegawai Terdaftar</h3>
+                            <select id="staff-outlet-filter" class="form-control" style="width: 200px;">
+                                <option value="all">Semua Outlet</option>
+                                <option value="antang-01">Antang 01</option>
+                                <option value="antang-02">Antang 02</option>
+                                <option value="tamalanrea-01">Tamalanrea 01</option>
+                            </select>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Username</th>
+                                        <th>Nama Pegawai</th>
+                                        <th>Peran</th>
+                                        <th>Penempatan Cabang</th>
+                                        <th>Kontak / Telp</th>
+                                        <th>Password / PIN</th>
+                                        <th>Status</th>
+                                        <th class="text-right">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="staff-table-tbody">
+                                    <!-- Diisi JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- TAB 3: SUPPLY & INVENTORY -->
+                <section id="tab-inventory" class="tab-content">
+                    <div class="dashboard-title-bar">
+                        <h2>Supply & Stok Tiap Cabang</h2>
+                        <button class="btn-primary" id="btn-open-restock-modal">
+                            📦 Tambah Supply / Restock
+                        </button>
+                    </div>
+
+                    <div class="content-card">
+                        <div class="content-card-header">
+                            <h3>Monitor Stok Produk per Outlet</h3>
+                            <select id="inventory-outlet-filter" class="form-control" style="width: 200px;">
+                                <option value="antang-01">Antang 01 (Pusat)</option>
+                                <option value="antang-02">Antang 02</option>
+                                <option value="tamalanrea-01">Tamalanrea 01</option>
+                            </select>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID Menu</th>
+                                        <th>Nama Menu</th>
+                                        <th>Harga Jual</th>
+                                        <th>Stok Saat Ini</th>
+                                        <th>Status Stok</th>
+                                        <th class="text-right">Aksi Cepat</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="inventory-table-tbody">
+                                    <!-- Diisi JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- TAB 4: LAPORAN PENJUALAN -->
+                <section id="tab-sales" class="tab-content">
+                    <div class="dashboard-title-bar">
+                        <h2>Laporan Penjualan & Riwayat Transaksi</h2>
+                        <button class="btn-secondary" id="btn-export-sales">
+                            📥 Ekspor Riwayat (CSV)
+                        </button>
+                    </div>
+
+                    <div class="content-card">
+                        <div class="content-card-header">
+                            <h3>Riwayat Transaksi Masuk</h3>
+                            <div class="d-flex gap-2">
+                                <select id="sales-outlet-filter" class="form-control" style="width: 180px;">
+                                    <option value="all">Semua Cabang</option>
+                                    <option value="antang-01">Antang 01</option>
+                                    <option value="antang-02">Antang 02</option>
+                                    <option value="tamalanrea-01">Tamalanrea 01</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID Order</th>
+                                        <th>Waktu</th>
+                                        <th>Outlet</th>
+                                        <th>Kasir</th>
+                                        <th>Rincian Item</th>
+                                        <th>Metode</th>
+                                        <th>Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="sales-table-tbody">
+                                    <!-- Diisi JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- TAB 5: KELOLA MENU / PRODUK -->
+                <section id="tab-products" class="tab-content">
+                    <div class="dashboard-title-bar">
+                        <h2>Master Data Menu & Harga</h2>
+                        <button class="btn-primary" id="btn-open-add-product">
+                            ➕ Tambah Menu Baru
+                        </button>
+                    </div>
+
+                    <div class="content-card">
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Nama Menu</th>
+                                        <th>Harga Jual (Rp)</th>
+                                        <th class="text-right">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="products-table-tbody">
+                                    <!-- Diisi JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+            </main>
         </div>
-        <img id="qris-image" src="" alt="QRIS Code" class="hidden w-full h-auto rounded-lg shadow-sm" />
-      </div>
-
-      <!-- Indicator Status Realtime -->
-      <div id="payment-status-badge" class="bg-amber-50 text-amber-700 border border-amber-200 rounded-xl py-2 px-3 text-xs font-semibold flex items-center justify-center gap-2">
-        <span class="w-2 h-2 rounded-full bg-amber-500 animate-ping"></span>
-        Menunggu Pembayaran...
-      </div>
-
-      <!-- Sukses Overlay View -->
-      <div id="success-state" class="hidden flex-col items-center py-6">
-        <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-3xl font-bold mb-3 animate-bounce">
-          ✓
-        </div>
-        <h4 class="text-xl font-bold text-emerald-600 mb-1">Pembayaran LUNAS!</h4>
-        <p class="text-xs text-slate-500">Stok otomatis terpotong di database</p>
-      </div>
-
     </div>
-  </div>
 
-  <!-- Inisialisasi Script Logic -->
-  <script src="app.js"></script>
+    <!-- ==================== MODAL KONFIGURASI SUPABASE ==================== -->
+    <div id="supabase-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>⚙️ Pengaturan Koneksi Supabase</h3>
+                <button type="button" class="modal-close-btn" onclick="closeModal('supabase-modal')">&times;</button>
+            </div>
+            <p style="font-size: 13px; color: var(--text-light); margin-bottom: 12px;">
+                Masukkan kredensial project Supabase Anda untuk menghubungkan data langsung ke database cloud PostgreSQL.
+            </p>
+            
+            <div id="supabase-msg-box" style="display:none; padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 14px;"></div>
+
+            <form id="supabase-form" onsubmit="event.preventDefault(); handleSaveSupabaseConfig();">
+                <div class="input-group">
+                    <label for="input-supabase-url">Project URL</label>
+                    <input type="url" id="input-supabase-url" class="form-control" placeholder="https://your-project.supabase.co" required>
+                </div>
+                <div class="input-group">
+                    <label for="input-supabase-key">Anon Public API Key</label>
+                    <input type="text" id="input-supabase-key" class="form-control" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." required>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" onclick="closeModal('supabase-modal')">Tutup</button>
+                    <button type="button" class="btn-danger btn-sm" onclick="handleClearSupabaseConfig()">Reset Local</button>
+                    <button type="button" id="btn-save-supabase" class="btn-primary" onclick="handleSaveSupabaseConfig()">Hubungkan Cloud</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ==================== MODAL TAMBAH / EDIT PEGAWAI ==================== -->
+    <div id="staff-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="staff-modal-title">Tambah Pegawai Baru</h3>
+                <button type="button" class="modal-close-btn" onclick="closeModal('staff-modal')">&times;</button>
+            </div>
+            <form id="staff-form" onsubmit="event.preventDefault(); saveStaff();">
+                <input type="hidden" id="staff-edit-id" value="">
+                <div class="input-group">
+                    <label for="input-staff-username">Nama Pengguna (Username Login)</label>
+                    <input type="text" id="input-staff-username" class="form-control" required placeholder="Contoh: andi_kasir (tanpa spasi)">
+                </div>
+                <div class="input-group">
+                    <label for="input-staff-name">Nama Lengkap Pegawai</label>
+                    <input type="text" id="input-staff-name" class="form-control" required placeholder="Contoh: Budi Santoso">
+                </div>
+                <div class="input-group">
+                    <label for="input-staff-role">Peran</label>
+                    <select id="input-staff-role" class="form-control" required>
+                        <option value="kasir">Staff (Kasir)</option>
+                        <option value="manajer">Manajer Cabang</option>
+                        <option value="owner">Pemilik (Owner)</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label for="input-staff-outlet">Penempatan Outlet</label>
+                    <select id="input-staff-outlet" class="form-control" required>
+                        <option value="antang-01">Antang 01 (Pusat)</option>
+                        <option value="antang-02">Antang 02 (Cabang)</option>
+                        <option value="tamalanrea-01">Tamalanrea 01 (Cabang)</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label for="input-staff-phone">No. WhatsApp / HP</label>
+                    <input type="tel" id="input-staff-phone" class="form-control" placeholder="0812xxxxxxx">
+                </div>
+                <div class="input-group">
+                    <label for="input-staff-password">PIN / Password Login</label>
+                    <input type="password" id="input-staff-password" class="form-control" placeholder="Default: 123" value="123">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" onclick="closeModal('staff-modal')">Batal</button>
+                    <button type="submit" class="btn-primary">Simpan Pegawai</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ==================== MODAL RESTOCK / TAMBAH SUPPLY ==================== -->
+    <div id="restock-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Tambah Supply / Restock Cabang</h3>
+                <button type="button" class="modal-close-btn" onclick="closeModal('restock-modal')">&times;</button>
+            </div>
+            <form id="restock-form" onsubmit="event.preventDefault(); saveRestock();">
+                <div class="input-group">
+                    <label for="restock-outlet-select">Outlet Tujuan</label>
+                    <select id="restock-outlet-select" class="form-control" required>
+                        <option value="antang-01">Antang 01</option>
+                        <option value="antang-02">Antang 02</option>
+                        <option value="tamalanrea-01">Tamalanrea 01</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label for="restock-product-select">Pilih Menu Produk</label>
+                    <select id="restock-product-select" class="form-control" required>
+                        <!-- Diisi JS -->
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label for="restock-qty-input">Jumlah Penambahan Stok (Pcs)</label>
+                    <input type="number" id="restock-qty-input" class="form-control" min="1" value="20" required>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" onclick="closeModal('restock-modal')">Batal</button>
+                    <button type="submit" class="btn-primary">Tambah Stok</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ==================== MODAL TAMBAH / EDIT MENU ==================== -->
+    <div id="product-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="product-modal-title">Tambah Menu Baru</h3>
+                <button type="button" class="modal-close-btn" onclick="closeModal('product-modal')">&times;</button>
+            </div>
+            <form id="product-form" onsubmit="event.preventDefault(); saveProduct();">
+                <input type="hidden" id="product-edit-id" value="">
+                <div class="input-group">
+                    <label for="input-product-name">Nama Menu</label>
+                    <input type="text" id="input-product-name" class="form-control" required placeholder="Contoh: Sambal Matah">
+                </div>
+                <div class="input-group">
+                    <label for="input-product-price">Harga Jual (Rp)</label>
+                    <input type="number" id="input-product-price" class="form-control" required min="1000" step="500" placeholder="25000">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" onclick="closeModal('product-modal')">Batal</button>
+                    <button type="submit" class="btn-primary">Simpan Menu</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ==================== MODAL QRIS ==================== -->
+    <div id="qris-modal" class="modal">
+        <div class="modal-content text-center">
+            <div class="modal-header">
+                <h3>Pembayaran QRIS</h3>
+                <button type="button" class="modal-close-btn" onclick="closeModal('qris-modal')">&times;</button>
+            </div>
+            <p style="font-size: 14px; color: var(--text-light); margin-bottom: 8px;">
+                Minta pelanggan scan kode QR berikut:
+            </p>
+            <div class="qris-box">
+                <div class="qris-icon">📱</div>
+                <strong id="qris-amount-display">Rp 0</strong>
+                <span style="font-size: 11px; color: #777;">[ Simulasi Integrasi Midtrans ]</span>
+            </div>
+            <div class="modal-footer justify-between">
+                <button id="btn-close-qris" type="button" class="btn-secondary">Batalkan</button>
+                <button id="btn-confirm-qris" type="button" class="btn-primary">Simulasi Sukses Bayar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications Container -->
+    <div id="toast-container"></div>
+
+    <!-- Supabase JS Client & App Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="app.js"></script>
 </body>
 </html>
